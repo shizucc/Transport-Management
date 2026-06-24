@@ -14,7 +14,7 @@ use App\Models\Customer;
 use App\Services\ProductService;
 use App\Repository\ProductRepository;
 use App\Models\Product;
-
+use Dompdf\Dompdf;
 class TransactionController extends BaseController
 {
     protected TransactionService $transactionService;
@@ -62,7 +62,6 @@ class TransactionController extends BaseController
     public function store()
     {
         if (!$this->validate('transactionRules')) {
-            dd($error = $this->validator->getErrors());
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -80,6 +79,56 @@ class TransactionController extends BaseController
             'title'       => 'Invoice Detail',
             'transaction' => $transaction
         ]);
+    }
+
+    public function edit($id)
+    {
+        $transaction = $this->transactionService->getByIdWithDetails($id);
+        $customers = $this->customerService->getPaginated([], 1000)['data'];
+        $products  = $this->productService->getPaginated([], 1000)['data'];
+
+        return view('transactions/create', [
+            'title'       => 'Edit Invoice',
+            'transaction' => $transaction,
+            'customers'   => $customers,
+            'products'    => $products
+        ]);
+    }
+
+    public function update($id)
+    {
+        $data = $this->request->getPost();
+        $data['id'] = $id;
+
+        if (!$this->validateData($data, 'transactionRules')) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $this->transactionService->update($id, $data);
+
+        return redirect()->to('/transactions')->with('success', 'Transaction has been successfully updated.');
+    }
+
+    public function download($id)
+    {
+        $transaction = $this->transactionService->getByIdWithDetails($id);
+        $html = view('transactions/pdf', [
+            'transaction' => $transaction
+        ]);
+
+        $invoiceNumber = preg_replace('/[^A-Za-z0-9]+/', '_', trim($transaction['header']->invoice_number ?? 'invoice'));
+        $companyName = preg_replace('/[^A-Za-z0-9]+/', '_', trim($transaction['header']->company_name ?? 'company'));
+        $filename = sprintf('%s_%s.pdf', $invoiceNumber, $companyName);
+
+        $dompdf = new Dompdf;
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        return $this->response
+            ->setBody($dompdf->output())
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
     public function delete($id)

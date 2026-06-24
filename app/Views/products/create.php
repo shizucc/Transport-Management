@@ -7,7 +7,7 @@
     </div>
 
     <div class="max-w-2xl bg-white rounded-lg shadow-md p-6">
-        <form method="POST" action="<?= base_url('/products' . (isset($product) ? '/' . $product->id : '')) ?>" class="space-y-6">
+        <form method="POST" action="<?= base_url('/products' . (isset($product) ? '/' . $product->id : '')) ?>" class="space-y-6 js-validated-form" novalidate>
             <?php if (isset($product)): ?>
                 <input type="hidden" name="_method" value="PUT">
                 <input type="hidden" name="id" value="<?= $product->id ?>">
@@ -22,6 +22,7 @@
                     value="<?= isset($product) ? esc($product->product_code) : esc(old('product_code')) ?>"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent <?= isset($errors['product_code']) ? 'border-red-500' : '' ?>"
                     placeholder="e.g., PROD001"
+                    maxlength="20"
                     required
                 >
                 <?php if (isset($errors['product_code'])): ?>
@@ -38,6 +39,8 @@
                     value="<?= isset($product) ? esc($product->product_name) : esc(old('product_name')) ?>"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent <?= isset($errors['product_name']) ? 'border-red-500' : '' ?>"
                     placeholder="Enter product name"
+                    minlength="3"
+                    maxlength="150"
                     required
                 >
                 <?php if (isset($errors['product_name'])): ?>
@@ -54,6 +57,7 @@
                     value="<?= isset($product) ? esc($product->unit) : esc(old('unit')) ?>"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent <?= isset($errors['unit']) ? 'border-red-500' : '' ?>"
                     placeholder="e.g., pcs, box, kg"
+                    maxlength="50"
                     required
                 >
                 <?php if (isset($errors['unit'])): ?>

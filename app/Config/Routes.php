@@ -26,6 +26,9 @@ $routes->group('', ['filter' => 'group:admin,superadmin'], static function ($rou
     $routes->get('/transactions/create', 'Resource\TransactionController::create');
     $routes->post('/transactions', 'Resource\TransactionController::store');
     $routes->get('/transactions/(:num)', 'Resource\TransactionController::show/$1');
+    $routes->get('/transactions/(:num)/edit', 'Resource\TransactionController::edit/$1');
+    $routes->put('/transactions/(:num)', 'Resource\TransactionController::update/$1');
+    $routes->get('/transactions/(:num)/download', 'Resource\TransactionController::download/$1');
     $routes->delete('/transactions/(:num)', 'Resource\TransactionController::delete/$1');
 });
 

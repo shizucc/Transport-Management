@@ -50,8 +50,8 @@ class TransactionService extends BaseService
                 $productId = $item['product_id'] ?? null;
                 if (empty($productId)) {
                     continue;
-                    }
-                 $product = $this->productModel->find($productId);
+                }
+                $product = $this->productModel->find($productId);
 
                 $qty = (int) ($item['qty'] ?? 0);
                 $price = (float) ($product->price ?? 0);
@@ -83,6 +83,64 @@ class TransactionService extends BaseService
         } catch (Exception $e) {
             $db->transRollback();
             throw new Exception("Failed to save transaction: " . $e->getMessage());
+        }
+    }
+
+    public function update($id, array $data)
+    {
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        try {
+            $headerData = [
+                'invoice_number' => $data['invoice_number'],
+                'invoice_date'   => $data['invoice_date'],
+                'customer_id'    => $data['customer_id'],
+                'pic_name'       => $data['pic_name'],
+            ];
+
+            $grandTotal = 0;
+            $detailsData = [];
+            $items = $data['items'] ?? [];
+
+            foreach ($items as $item) {
+                $productId = $item['product_id'] ?? null;
+                if (empty($productId)) {
+                    continue;
+                }
+
+                $product = $this->productModel->find($productId);
+                $qty = (int) ($item['qty'] ?? 0);
+                $price = (float) ($product->price ?? 0);
+                $subtotal = $qty * $price;
+
+                $grandTotal += $subtotal;
+                $detailsData[] = [
+                    'transaction_id' => $id,
+                    'product_id'     => $productId,
+                    'qty'            => $qty,
+                    'price'          => $price,
+                    'subtotal'       => $subtotal
+                ];
+            }
+
+            $this->detailModel->where('transaction_id', $id)->delete();
+
+            if (!empty($detailsData)) {
+                $this->detailModel->insertBatch($detailsData);
+            }
+
+            $this->repository->update($id, array_merge($headerData, ['grand_total' => $grandTotal]));
+
+            if ($db->transStatus() === false) {
+                throw new DatabaseException('Transaction update failed.');
+            }
+
+            $db->transCommit();
+            return $id;
+        } catch (Exception $e) {
+            $db->transRollback();
+            throw new Exception("Failed to update transaction: " . $e->getMessage());
         }
     }
 

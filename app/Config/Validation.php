@@ -43,26 +43,34 @@ class Validation extends BaseConfig
     // --------------------------------------------------------------------
     public $customerRules = [
         'company_name' => [
-            'rules' => 'required|min_length[3]',
+            'rules' => 'required|min_length[3]|max_length[150]',
             'errors' => [
-                'required' => 'Company name required',
+                'required' => 'Company name is required.',
+                'min_length' => 'Company name must be at least 3 characters long.',
+                'max_length' => 'Company name cannot exceed 150 characters.'
             ]
         ],
         'contact_person' => [
-            'rules' => 'required',
+            'rules' => 'required|min_length[3]|max_length[100]',
             'errors' => [
-                'required' => 'Contact Person required'
+                'required' => 'Contact Person is required.',
+                'min_length' => 'Contact Person must be at least 3 characters long.',
+                'max_length' => 'Contact Person cannot exceed 100 characters.'
             ]
         ],
         'address' => [
-            'rules' => 'required',
+            'rules' => 'required|min_length[5]|max_length[255]',
             'errors' => [
-                'required' => 'Address required'
+                'required' => 'Address is required.',
+                'min_length' => 'Address must be at least 5 characters long.',
+                'max_length' => 'Address cannot exceed 255 characters.'
             ]
         ]
     ];
     public $productRules = [
-        'id' => ['required'],
+        'id'=> [
+            'rules' => 'required'
+        ],
         'product_code' => [
             'rules' => 'required|max_length[20]|is_unique[products.product_code,id,{id}]',
             'errors' => [
@@ -96,6 +104,9 @@ class Validation extends BaseConfig
         ]
     ];
     public $transactionRules = [
+        'id'=> [
+            'rules' => 'required'
+        ],
         'invoice_number' => [
             'rules' => 'required|max_length[50]|is_unique[transactions.invoice_number,id,{id}]',
             'errors' => [
@@ -120,10 +131,27 @@ class Validation extends BaseConfig
             ]
         ],
         'pic_name' => [
-            'rules' => 'required|max_length[100]',
+            'rules' => 'required|min_length[3]|max_length[100]',
             'errors' => [
                 'required' => 'PIC Name is required.',
+                'min_length' => 'PIC Name must be at least 3 characters long.',
                 'max_length' => 'PIC Name cannot exceed 100 characters.'
+            ]
+        ],
+        'items.*.product_id' => [
+            'rules' => 'required|numeric|is_not_unique[products.id]',
+            'errors' => [
+                'required' => 'Each item must include a product selection.',
+                'numeric' => 'Each item product must be a valid product id.',
+                'is_not_unique' => 'One or more selected products do not exist.'
+            ]
+        ],
+        'items.*.qty' => [
+            'rules' => 'required|integer|greater_than_equal_to[1]',
+            'errors' => [
+                'required' => 'Quantity is required for each item.',
+                'integer' => 'Quantity must be a whole number.',
+                'greater_than_equal_to' => 'Quantity must be at least 1.'
             ]
         ],
     ];

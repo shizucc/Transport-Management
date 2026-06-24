@@ -48,11 +48,12 @@
                             <tr class="border-b border-gray-200 hover:bg-gray-50 transition duration-150">
                                 <td class="px-6 py-4 text-gray-900 font-medium"><?= esc($transaction->invoice_number) ?></td>
                                 <td class="px-6 py-4 text-gray-900"><?= date('d/m/Y', strtotime($transaction->invoice_date)) ?></td>
-                                <td class="px-6 py-4 text-gray-900"><?= esc($transaction->company_name ?? 'N/A') ?></td>
+                                <td class="px-6 py-4 text-gray-900"><?= esc($transaction->customer_company_name ?? 'N/A') ?></td>
                                 <td class="px-6 py-4 text-gray-900"><?= esc($transaction->pic_name) ?></td>
                                 <td class="px-6 py-4 text-gray-900 text-right font-semibold">IDR <?= number_format($transaction->grand_total, 0, ',', '.') ?></td>
                                 <td class="px-6 py-4 text-center">
                                     <a href="<?= base_url('/transactions/' . $transaction->id) ?>" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded transition duration-200 inline-block mr-2">View</a>
+                                    <a href="<?= base_url('/transactions/' . $transaction->id . '/edit') ?>" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded transition duration-200 inline-block mr-2">Edit</a>
                                     <button onclick="confirmDelete(<?= $transaction->id ?>)" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded transition duration-200">Delete</button>
                                 </td>
                             </tr>

@@ -1,13 +1,40 @@
 <?= $this->extend('layout/main') ?>
 
+<?php
+    $errors = session()->getFlashdata('errors') ?? ($errors ?? []);
+    $transactionHeader = $transaction['header'] ?? ($transaction ?? null);
+    $transactionDetails = $transaction['details'] ?? ($transactionHeader->details ?? []);
+    $productById = [];
+    foreach ($products as $product) {
+        $productById[$product->id] = $product;
+    }
+
+    $items = old('items') ?? [];
+    if (empty($items) && !empty($transactionDetails)) {
+        foreach ($transactionDetails as $detail) {
+            $items[] = [
+                'product_id' => $detail->product_id,
+                'price'      => $detail->price,
+                'qty'        => $detail->qty,
+                'unit'       => $detail->unit,
+                'subtotal'   => $detail->subtotal,
+            ];
+        }
+    }
+?>
+
 <?= $this->section('content') ?>
 <div>
     <div class="mb-6">
-        <h2 class="text-3xl font-bold text-gray-900">Create New Invoice</h2>
+        <h2 class="text-3xl font-bold text-gray-900"><?= esc($title ?? 'Create New Invoice') ?></h2>
     </div>
 
     <div class="bg-white rounded-lg shadow-md p-6">
-        <form method="POST" action="<?= base_url('/transactions') ?>" class="space-y-6" id="invoiceForm">
+        <form method="POST" action="<?= base_url('/transactions' . (isset($transactionHeader->id) ? '/' . $transactionHeader->id : '')) ?>" class="space-y-6 js-validated-form" id="invoiceForm" novalidate>
+            <?php if (! empty($transactionHeader->id)): ?>
+                <input type="hidden" name="_method" value="PUT">
+            <?php endif; ?>
+
             <div class="border-b pb-6">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Basic Information</h3>
                 
@@ -18,9 +45,10 @@
                             type="text" 
                             id="invoice_number" 
                             name="invoice_number" 
-                            value="<?= esc(old('invoice_number')) ?>"
+                            value="<?= esc(old('invoice_number', $transactionHeader->invoice_number ?? '')) ?>"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent <?= isset($errors['invoice_number']) ? 'border-red-500' : '' ?>"
                             placeholder="e.g., INV-001"
+                            maxlength="50"
                             required
                         >
                         <?php if (isset($errors['invoice_number'])): ?>
@@ -34,7 +62,7 @@
                             type="date" 
                             id="invoice_date" 
                             name="invoice_date" 
-                            value="<?= esc(old('invoice_date', date('Y-m-d'))) ?>"
+                            value="<?= esc(old('invoice_date', $transactionHeader->invoice_date ?? date('Y-m-d'))) ?>"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent <?= isset($errors['invoice_date']) ? 'border-red-500' : '' ?>"
                             required
                         >
@@ -54,7 +82,7 @@
                         >
                             <option value="">-- Select Customer --</option>
                             <?php foreach ($customers as $customer): ?>
-                                <option value="<?= $customer->id ?>" <?= old('customer_id') == $customer->id ? 'selected' : '' ?>>
+                                <option value="<?= $customer->id ?>" <?= (old('customer_id') ?? ($transactionHeader->customer_id ?? '')) == $customer->id ? 'selected' : '' ?> >
                                     <?= esc($customer->company_name) ?> - <?= esc($customer->contact_person) ?>
                                 </option>
                             <?php endforeach; ?>
@@ -70,9 +98,11 @@
                             type="text" 
                             id="pic_name" 
                             name="pic_name" 
-                            value="<?= esc(old('pic_name')) ?>"
+                            value="<?= esc(old('pic_name', $transactionHeader->pic_name ?? '')) ?>"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent <?= isset($errors['pic_name']) ? 'border-red-500' : '' ?>"
                             placeholder="Person In Charge name"
+                            minlength="3"
+                            maxlength="100"
                             required
                         >
                         <?php if (isset($errors['pic_name'])): ?>
@@ -103,9 +133,45 @@
                             </tr>
                         </thead>
                         <tbody id="itemsTable">
+                        <?php if (! empty($items) && is_array($items)): ?>
+                            <?php foreach ($items as $itemIndex => $item): ?>
+                                <?php
+                                    $selectedProductId = $item['product_id'] ?? '';
+                                    $product = isset($productById[$selectedProductId]) ? $productById[$selectedProductId] : null;
+                                    $itemPrice = $product ? $product->price : (float) ($item['price'] ?? 0);
+                                    $itemUnit = $product ? esc($product->unit) : esc($item['unit'] ?? '-');
+                                    $itemQty = isset($item['qty']) ? (int) $item['qty'] : 1;
+                                    $itemTotal = $itemPrice * $itemQty;
+                                ?>
+                                <tr class="border-b border-gray-200 item-row">
+                                    <td class="px-4 py-3">
+                                        <select name="items[<?= $itemIndex ?>][product_id]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 product-select" onchange="updateRowPrice(this)" required>
+                                            <option value="">-- Select Product --</option>
+                                            <?php foreach ($products as $productOption): ?>
+                                                <option value="<?= $productOption->id ?>" data-price="<?= $productOption->price ?>" data-unit="<?= esc($productOption->unit) ?>" <?= $productOption->id == $selectedProductId ? 'selected' : '' ?> >
+                                                    <?= esc($productOption->product_code) ?> - <?= esc($productOption->product_name) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <input type="hidden" name="items[<?= $itemIndex ?>][price]" class="price-input" value="<?= esc($itemPrice) ?>">
+                                    </td>
+                                    <td class="px-4 py-3 product-unit text-gray-600"><?= $itemUnit ?></td>
+                                    <td class="px-4 py-3 product-price text-right font-semibold text-gray-900"><?= number_format($itemPrice, 0, ',', '.') ?></td>
+                                    <td class="px-4 py-3">
+                                        <input type="number" name="items[<?= $itemIndex ?>][qty]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 qty-input" min="1" value="<?= esc($itemQty) ?>" onchange="updateRowTotal(this)" required>
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-bold text-gray-900 row-total" data-value="<?= esc($itemTotal) ?>"><?= number_format($itemTotal, 0, ',', '.') ?></td>
+                                    <td class="px-4 py-3 text-center">
+                                        <button type="button" onclick="removeItemRow(this)" class="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded text-sm transition duration-200">
+                                            Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
                             <tr class="border-b border-gray-200 item-row">
                                 <td class="px-4 py-3">
-                                    <select name="items[0][product_id]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 product-select" onchange="updateRowPrice(this)">
+                                    <select name="items[0][product_id]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 product-select" onchange="updateRowPrice(this)" required>
                                         <option value="">-- Select Product --</option>
                                         <?php foreach ($products as $product): ?>
                                             <option value="<?= $product->id ?>" data-price="<?= $product->price ?>" data-unit="<?= esc($product->unit) ?>">
@@ -118,30 +184,27 @@
                                 <td class="px-4 py-3 product-unit text-gray-600">-</td>
                                 <td class="px-4 py-3 product-price text-right font-semibold text-gray-900">0</td>
                                 <td class="px-4 py-3">
-                                    <input type="number" name="items[0][qty]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 qty-input" min="1" value="1" onchange="updateRowTotal(this)">
+                                    <input type="number" name="items[0][qty]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 qty-input" min="1" value="1" onchange="updateRowTotal(this)" required>
                                 </td>
-                                <td class="px-4 py-3 text-right font-bold text-gray-900 row-total">0</td>
+                                <td class="px-4 py-3 text-right font-bold text-gray-900 row-total" data-value="0">0</td>
                                 <td class="px-4 py-3 text-center">
                                     <button type="button" onclick="removeItemRow(this)" class="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded text-sm transition duration-200">
                                         Remove
                                     </button>
                                 </td>
                             </tr>
-                        </tbody>
+                        <?php endif; ?>
+                    </tbody>
                     </table>
                 </div>
             </div>
 
             <div class="flex justify-end">
                 <div class="bg-gray-100 p-6 rounded-lg w-full md:w-80">
-                    <div class="flex justify-between mb-2">
-                        <span class="text-gray-700">Subtotal:</span>
-                        <span id="subtotal" class="font-semibold">0</span>
-                    </div>
                     <div class="flex justify-between text-lg font-bold border-t-2 border-gray-300 pt-4">
                         <span>Grand Total (IDR):</span>
-                        <input type="hidden" id="grand_total" name="grand_total" value="0">
-                        <span id="grandTotalDisplay">0</span>
+                        <input type="hidden" id="grand_total" name="grand_total" value="<?= esc(old('grand_total', $transactionHeader->grand_total ?? 0)) ?>">
+                        <span id="grandTotalDisplay"><?= esc(number_format(old('grand_total', $transactionHeader->grand_total ?? 0), 0, ',', '.')) ?></span>
                     </div>
                 </div>
             </div>
@@ -151,7 +214,7 @@
                     <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                     </svg>
-                    Create Invoice
+                    <?= empty($transactionHeader->id) ? 'Create Invoice' : 'Update Invoice' ?>
                 </button>
                 <a href="<?= base_url('/transactions') ?>" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg transition duration-200">Cancel</a>
             </div>
@@ -170,7 +233,7 @@
         
         newRow.innerHTML = `
             <td class="px-4 py-3">
-                <select name="items[${index}][product_id]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 product-select" onchange="updateRowPrice(this)">
+                <select name="items[${index}][product_id]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 product-select" onchange="updateRowPrice(this)" required>
                     <option value="">-- Select Product --</option>
                     ${products.map(p => `<option value="${p.id}" data-price="${p.price}" data-unit="${p.unit}">${p.product_code} - ${p.product_name}</option>`).join('')}
                 </select>
@@ -179,7 +242,7 @@
             <td class="px-4 py-3 product-unit text-gray-600">-</td>
             <td class="px-4 py-3 product-price text-right font-semibold text-gray-900">0</td>
             <td class="px-4 py-3">
-                <input type="number" name="items[${index}][qty]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 qty-input" min="1" value="1" onchange="updateRowTotal(this)">
+                <input type="number" name="items[${index}][qty]" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 qty-input" min="1" value="1" onchange="updateRowTotal(this)" required>
             </td>
             <td class="px-4 py-3 text-right font-bold text-gray-900 row-total" data-value="0">0</td>
             <td class="px-4 py-3 text-center">
@@ -188,7 +251,7 @@
                 </button>
             </td>
         `;
-        
+
         tableBody.appendChild(newRow);
         reindexRows();
     }

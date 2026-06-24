@@ -12,7 +12,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-gray-600 text-sm">Customers</p>
-                    <p class="text-3xl font-bold text-blue-600">0</p>
+                    <p class="text-3xl font-bold text-blue-600"><?= esc($countCustomer) ?></p>
                 </div>
                 <div class="bg-blue-100 p-4 rounded-lg">
                     <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -27,7 +27,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-gray-600 text-sm">Products</p>
-                    <p class="text-3xl font-bold text-green-600">0</p>
+                    <p class="text-3xl font-bold text-green-600"><?= esc($countProduct) ?></p>
                 </div>
                 <div class="bg-green-100 p-4 rounded-lg">
                     <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
@@ -42,7 +42,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-gray-600 text-sm">Transactions</p>
-                    <p class="text-3xl font-bold text-purple-600">0</p>
+                    <p class="text-3xl font-bold text-purple-600"><?= esc($countTransaction) ?></p>
                 </div>
                 <div class="bg-purple-100 p-4 rounded-lg">
                     <svg class="w-8 h-8 text-purple-600" fill="currentColor" viewBox="0 0 20 20">

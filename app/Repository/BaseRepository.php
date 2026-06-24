@@ -51,6 +51,10 @@ abstract class BaseRepository
         return $this->model;
     }
 
+    public function count(){
+        return $this->model->countAllResults();
+    }
+
     public function paginate(int $perPage = 10, array $filters = [], string $group = 'default'): array
     {
         if (!empty($filters)) {

@@ -8,6 +8,10 @@ abstract class BaseService
 {
     protected BaseRepository $repository;
 
+    public function count(){
+        return $this->repository->count();
+    }
+
     public function __construct(BaseRepository $repository)
     {
         $this->repository = $repository;

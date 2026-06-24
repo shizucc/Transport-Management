@@ -7,7 +7,7 @@
     </div>
 
     <div class="max-w-2xl bg-white rounded-lg shadow-md p-6">
-        <form method="POST" action="<?= base_url('/customers' . (isset($customer) ? '/' . $customer->id : '')) ?>" class="space-y-6">
+        <form method="POST" action="<?= base_url('/customers' . (isset($customer) ? '/' . $customer->id : '')) ?>" class="space-y-6 js-validated-form" novalidate>
             <?php if (isset($customer)): ?>
                 <input type="hidden" name="_method" value="PUT">
             <?php endif; ?>
@@ -21,6 +21,8 @@
                     value="<?= isset($customer) ? esc($customer->company_name) : esc(old('company_name')) ?>"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= isset($errors['company_name']) ? 'border-red-500' : '' ?>"
                     placeholder="Enter company name"
+                    minlength="3"
+                    maxlength="150"
                     required
                 >
                 <?php if (isset($errors['company_name'])): ?>
@@ -37,6 +39,8 @@
                     value="<?= isset($customer) ? esc($customer->contact_person) : esc(old('contact_person')) ?>"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= isset($errors['contact_person']) ? 'border-red-500' : '' ?>"
                     placeholder="Enter contact person name"
+                    minlength="3"
+                    maxlength="60"
                     required
                 >
                 <?php if (isset($errors['contact_person'])): ?>
@@ -52,6 +56,8 @@
                     rows="4"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= isset($errors['address']) ? 'border-red-500' : '' ?>"
                     placeholder="Enter address"
+                    minlength="5"
+                    maxlength="255"
                     required
                 ><?= isset($customer) ? esc($customer->address) : esc(old('address')) ?></textarea>
                 <?php if (isset($errors['address'])): ?>

@@ -41,6 +41,8 @@
             </div>
         <?php endif; ?>
 
+        <?php $errorMessages = session()->getFlashdata('errors') ?? ($errors ?? []); ?>
+
         <?php if (session()->getFlashdata('error')): ?>
             <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg shadow-md flex items-center justify-between animate-fade-in" id="errorAlert">
                 <div class="flex items-center">
@@ -57,17 +59,17 @@
             </div>
         <?php endif; ?>
 
-        <?php if (isset($errors) && is_array($errors)): ?>
-            <div class="mb-4 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg shadow-md">
-                <h3 class="font-bold mb-2 flex items-center">
+        <?php if (! empty($errorMessages) && is_array($errorMessages)): ?>
+            <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg shadow-md animate-fade-in">
+                <div class="flex items-center mb-2">
                     <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                     </svg>
-                    Validation Errors
-                </h3>
-                <ul class="list-disc list-inside">
-                    <?php foreach ($errors as $field => $error): ?>
-                        <li><?= $error ?></li>
+                    <strong>Validation Error</strong>
+                </div>
+                <ul class="list-disc list-inside ml-6">
+                    <?php foreach ($errorMessages as $field => $error): ?>
+                        <li><?= is_array($error) ? implode(' ', $error) : $error ?></li>
                     <?php endforeach; ?>
                 </ul>
             </div>
@@ -103,7 +105,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const successAlert = document.getElementById('successAlert');
             const errorAlert = document.getElementById('errorAlert');
-            
+
             if (successAlert) {
                 setTimeout(() => {
                     successAlert.style.transition = 'opacity 0.3s ease-out';
@@ -111,13 +113,86 @@
                     setTimeout(() => successAlert.remove(), 300);
                 }, 5000);
             }
-            
+
             if (errorAlert) {
                 setTimeout(() => {
                     errorAlert.style.transition = 'opacity 0.3s ease-out';
                     errorAlert.style.opacity = '0';
                     setTimeout(() => errorAlert.remove(), 300);
                 }, 5000);
+            }
+
+            const validatedForms = document.querySelectorAll('form.js-validated-form');
+            validatedForms.forEach(form => {
+                form.addEventListener('submit', function(event) {
+                    clearValidationHighlights(form);
+
+                    let valid = form.checkValidity();
+
+                    if (form.id === 'invoiceForm') {
+                        valid = validateInvoiceItems(form) && valid;
+                    }
+
+                    if (!valid) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const firstInvalid = form.querySelector(':invalid');
+                        if (firstInvalid) {
+                            firstInvalid.classList.add('border-red-500');
+                            firstInvalid.focus();
+                        }
+                        form.reportValidity();
+                    }
+                });
+
+                form.addEventListener('input', function(event) {
+                    const field = event.target;
+                    if (! field) {
+                        return;
+                    }
+
+                    field.classList.remove('border-red-500');
+                    if (typeof field.setCustomValidity === 'function') {
+                        field.setCustomValidity('');
+                    }
+                });
+            });
+
+            function clearValidationHighlights(form) {
+                form.querySelectorAll('.border-red-500').forEach(el => {
+                    el.classList.remove('border-red-500');
+                });
+            }
+
+            function validateInvoiceItems(form) {
+                let valid = true;
+                form.querySelectorAll('.item-row').forEach(row => {
+                    const select = row.querySelector('.product-select');
+                    const qty = row.querySelector('.qty-input');
+
+                    if (select) {
+                        if (!select.value) {
+                            select.classList.add('border-red-500');
+                            select.setCustomValidity('Please select a product.');
+                            valid = false;
+                        } else {
+                            select.setCustomValidity('');
+                        }
+                    }
+
+                    if (qty) {
+                        const qtyValue = Number(qty.value);
+                        if (!qty.value || qtyValue < 1) {
+                            qty.classList.add('border-red-500');
+                            qty.setCustomValidity('Quantity must be at least 1.');
+                            valid = false;
+                        } else {
+                            qty.setCustomValidity('');
+                        }
+                    }
+                });
+
+                return valid;
             }
         });
     </script>
