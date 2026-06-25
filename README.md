@@ -4,7 +4,7 @@
 
 1. `composer install`
 2. `npm install`
-3. Jika tampilan berantakan:
+3. Jika tampilan UI berantakan:
    `npx @tailwindcss/cli -i ./public/src/tailwind.css -o ./public/src/output.css --watch`
 4. `php spark migrate -all`
 5. `php spark db:seed InitialDataSeeder`
@@ -13,5 +13,5 @@
 
 ## Server Requirements
 
-PHP version 8.2 or higher is required, with the following extensions installed:
+PHP version 8.4 or higher is required, with the following extensions installed:
 
